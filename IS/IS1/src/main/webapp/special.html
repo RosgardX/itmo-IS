@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>IS1 - Спецоперации</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="narrow">
+    <h1>Специальные операции</h1>
+
+    <section class="op">
+        <h2>1. Удалить все объекты с заданным типом топлива</h2>
+        <div class="op-row">
+            <select id="op1-fuel"></select>
+            <button class="danger" id="op1">Удалить</button>
+        </div>
+    </section>
+
+    <section class="op">
+        <h2>2. Объект с минимальной датой создания</h2>
+        <div class="op-row"><button class="primary" id="op2">Найти</button></div>
+    </section>
+
+    <section class="op">
+        <h2>3. Объекты, у которых тип топлива больше заданного</h2>
+        <p class="muted">Порядок: ELECTRICITY &lt; DIESEL &lt; ANTIMATTER</p>
+        <div class="op-row">
+            <select id="op3-fuel"></select>
+            <button class="primary" id="op3">Найти</button>
+        </div>
+    </section>
+
+    <section class="op">
+        <h2>4. Транспорт с мощностью двигателя в диапазоне</h2>
+        <div class="op-row">
+            <input id="op4-min" type="number" step="1" min="1" placeholder="от">
+            <input id="op4-max" type="number" step="1" min="1" placeholder="до">
+            <button class="primary" id="op4">Найти</button>
+        </div>
+    </section>
+
+    <section class="op">
+        <h2>5. Добавить колёса транспорту с заданным id</h2>
+        <div class="op-row">
+            <input id="op5-id" type="number" step="1" min="1" placeholder="id">
+            <input id="op5-count" type="number" step="1" min="1" placeholder="сколько колёс">
+            <button class="primary" id="op5">Добавить</button>
+        </div>
+    </section>
+
+    <h2>Результат</h2>
+    <ul id="errors" class="errors"></ul>
+    <div id="result">Выполните любую операцию</div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/special.js"></script>
+</body>
+</html>
