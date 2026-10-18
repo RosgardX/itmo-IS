@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>IS1 - Координаты</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="narrow">
+    <h1>Координаты</h1>
+    <p class="muted">Если к удаляемым координатам привязаны машины, выберите, к каким координатам их перепривязать.</p>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr><th>ID</th><th>X</th><th>Y</th><th>Машин привязано</th><th>Перепривязать к</th><th></th></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+    </div>
+    <ul id="errors" class="errors"></ul>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/coordinates.js"></script>
+</body>
+</html>
