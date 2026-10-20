@@ -1,2 +1,2 @@
 # itmo-IS
-University projects
+Information Systems labs
