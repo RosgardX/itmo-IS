@@ -6,12 +6,19 @@ import com.rosgard.entity.VehicleType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.TypedQuery;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class VehicleRepository {
@@ -28,51 +35,58 @@ public class VehicleRepository {
     }
 
     public List<Vehicle> findAll() {
-        return em.createQuery("SELECT v FROM Vehicle v ORDER BY v.id", Vehicle.class)
-                .getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.orderBy(cb.asc(v.get("id")));
+        return em.createQuery(q).getResultList();
     }
 
     public List<Vehicle> findPage(String filterField, String filterValue, String sort, boolean asc, int page, int size) {
         if (!SORT_FIELDS.contains(sort)) throw new IllegalArgumentException("Нельзя сортировать по полю " + sort);
-        String jpql = "SELECT v FROM Vehicle v" + where(filterField, filterValue)
-                + " ORDER BY v." + sort + (asc ? " ASC" : " DESC") + ", v.id";
-        TypedQuery<Vehicle> q = em.createQuery(jpql, Vehicle.class);
-        setFilter(q, filterField, filterValue);
-        return q.setFirstResult(page * size)
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.where(filter(cb, v, filterField, filterValue));
+        Path<?> sortPath = path(v, sort);
+        q.orderBy(asc ? cb.asc(sortPath) : cb.desc(sortPath), cb.asc(v.get("id")));
+        return em.createQuery(q)
+                .setFirstResult(page * size)
                 .setMaxResults(size)
                 .getResultList();
     }
 
     public long count(String filterField, String filterValue) {
-        TypedQuery<Long> q = em.createQuery("SELECT COUNT(v) FROM Vehicle v" + where(filterField, filterValue), Long.class);
-        setFilter(q, filterField, filterValue);
-        return q.getSingleResult();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> q = cb.createQuery(Long.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.select(cb.count(v)).where(filter(cb, v, filterField, filterValue));
+        return em.createQuery(q).getSingleResult();
     }
 
-    private String where(String field, String value) {
-        if (value == null || value.isBlank()) return "";
+    private Predicate filter(CriteriaBuilder cb, Root<Vehicle> v, String field, String value) {
+        if (value == null || value.isBlank()) return cb.conjunction();
+        String text = value.trim().toLowerCase();
         return switch (field) {
-            case "name" -> " WHERE LOWER(v.name) LIKE :value";
-            case "type", "fuelType" -> matchingEnums(field, value).isEmpty()
-                    ? " WHERE v.id IS NULL"
-                    : " WHERE v." + field + " IN :value";
+            case "name" -> cb.like(cb.lower(v.get("name")), "%" + text + "%");
+            case "type" -> in(cb, v.get("type"), matching(VehicleType.values(), text));
+            case "fuelType" -> in(cb, v.get("fuelType"), matching(FuelType.values(), text));
             default -> throw new IllegalArgumentException("Нельзя фильтровать по полю " + field);
         };
     }
 
-    private void setFilter(TypedQuery<?> q, String field, String value) {
-        if (value == null || value.isBlank()) return;
-        if (field.equals("name")) {
-            q.setParameter("value", "%" + value.trim().toLowerCase() + "%");
-        } else if (!matchingEnums(field, value).isEmpty()) {
-            q.setParameter("value", matchingEnums(field, value));
-        }
+    private Predicate in(CriteriaBuilder cb, Path<?> field, List<? extends Enum<?>> values) {
+        return values.isEmpty() ? cb.disjunction() : field.in(values);
     }
 
-    private List<? extends Enum<?>> matchingEnums(String field, String value) {
-        Enum<?>[] all = field.equals("type") ? VehicleType.values() : FuelType.values();
-        String v = value.trim().toLowerCase();
-        return Arrays.stream(all).filter(e -> e.name().toLowerCase().contains(v)).toList();
+    private List<? extends Enum<?>> matching(Enum<?>[] all, String text) {
+        return Arrays.stream(all).filter(e -> e.name().toLowerCase().contains(text)).toList();
+    }
+
+    private Path<?> path(Root<Vehicle> v, String field) {
+        Path<?> p = v;
+        for (String part : field.split("\\.")) p = p.get(part);
+        return p;
     }
 
     public Vehicle save(Vehicle vehicle) {
@@ -86,27 +100,52 @@ public class VehicleRepository {
     }
 
     public List<Vehicle> findByFuelType(FuelType fuelType) {
-        return em.createQuery("SELECT v FROM Vehicle v WHERE v.fuelType = :f", Vehicle.class)
-                .setParameter("f", fuelType).getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.where(cb.equal(v.get("fuelType"), fuelType));
+        return em.createQuery(q).getResultList();
     }
 
     public List<Vehicle> findByFuelTypeIn(List<FuelType> fuelTypes) {
-        return em.createQuery("SELECT v FROM Vehicle v WHERE v.fuelType IN :f ORDER BY v.id", Vehicle.class)
-                .setParameter("f", fuelTypes).getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.where(v.get("fuelType").in(fuelTypes)).orderBy(cb.asc(v.get("id")));
+        return em.createQuery(q).getResultList();
     }
 
     public Optional<Vehicle> findOldest() {
-        return em.createQuery("SELECT v FROM Vehicle v ORDER BY v.creationDate ASC, v.id ASC", Vehicle.class)
-                .setMaxResults(1).getResultStream().findFirst();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.orderBy(cb.asc(v.get("creationDate")), cb.asc(v.get("id")));
+        return em.createQuery(q).setMaxResults(1).getResultStream().findFirst();
     }
 
     public List<Vehicle> findByEnginePowerBetween(int min, int max) {
-        return em.createQuery("SELECT v FROM Vehicle v WHERE v.enginePower BETWEEN :min AND :max ORDER BY v.enginePower", Vehicle.class)
-                .setParameter("min", min).setParameter("max", max).getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.where(cb.between(v.get("enginePower"), min, max)).orderBy(cb.asc(v.get("enginePower")));
+        return em.createQuery(q).getResultList();
     }
 
     public List<Vehicle> findByCoordinatesId(int coordinatesId) {
-        return em.createQuery("SELECT v FROM Vehicle v WHERE v.coordinates.id = :id", Vehicle.class)
-                .setParameter("id", coordinatesId).getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
+        Root<Vehicle> v = q.from(Vehicle.class);
+        q.where(cb.equal(v.get("coordinates").get("id"), coordinatesId));
+        return em.createQuery(q).getResultList();
+    }
+
+    public Map<Integer, Long> countByCoordinates() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<Vehicle> v = q.from(Vehicle.class);
+        Path<Integer> id = v.get("coordinates").get("id");
+        q.multiselect(id, cb.count(v)).groupBy(id);
+        return em.createQuery(q).getResultList().stream()
+                .collect(Collectors.toMap(t -> t.get(0, Integer.class), t -> t.get(1, Long.class)));
     }
 }
