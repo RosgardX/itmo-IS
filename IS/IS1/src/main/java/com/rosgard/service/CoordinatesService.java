@@ -26,8 +26,10 @@ public class CoordinatesService {
     }
 
     public List<Map<String, Object>> getAllWithUsage() {
-        return coordinates.findAllWithUsage().stream()
-                .map(r -> Map.of("id", r[0], "x", r[1], "y", r[2], "vehicles", r[3]))
+        Map<Integer, Long> usage = vehicles.countByCoordinates();
+        return coordinates.findAll().stream()
+                .map(c -> Map.<String, Object>of("id", c.getId(), "x", c.getX(), "y", c.getY(),
+                        "vehicles", usage.getOrDefault(c.getId(), 0L)))
                 .toList();
     }
 
