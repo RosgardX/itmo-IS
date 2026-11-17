@@ -2,6 +2,7 @@ package com.rosgard.service;
 
 import com.rosgard.entity.Coordinates;
 import com.rosgard.entity.Vehicle;
+import com.rosgard.exception.InvalidRequestException;
 import com.rosgard.repository.CoordinatesRepository;
 import com.rosgard.repository.VehicleRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,20 +18,21 @@ import java.util.Map;
 @Transactional
 public class CoordinatesService {
 
-    @Inject CoordinatesRepository coordinates;
-    @Inject VehicleRepository vehicles;
-    @Inject Event<Vehicle> changed;
+    @Inject
+    CoordinatesRepository coordinates;
+    @Inject
+    VehicleRepository vehicles;
+    @Inject
+    Event<Vehicle> changed;
 
-    public List<Coordinates> getAll() {
-        return coordinates.findAll();
-    }
-
-    public List<Map<String, Object>> getAllWithUsage() {
-        Map<Integer, Long> usage = vehicles.countByCoordinates();
-        return coordinates.findAll().stream()
+    public Map<String, Object> getPage(int offset, int size) {
+        List<Coordinates> page = coordinates.findPage(offset, size);
+        Map<Integer, Long> usage = vehicles.countByCoordinates(page.stream().map(Coordinates::getId).toList());
+        List<Map<String, Object>> items = page.stream()
                 .map(c -> Map.<String, Object>of("id", c.getId(), "x", c.getX(), "y", c.getY(),
                         "vehicles", usage.getOrDefault(c.getId(), 0L)))
                 .toList();
+        return Map.of("items", items, "total", coordinates.count());
     }
 
     public void deleteAndReassign(int id, Integer reassignToId) {
@@ -39,10 +41,10 @@ public class CoordinatesService {
 
         if (!linked.isEmpty()) {
             if (reassignToId == null)
-                throw new IllegalArgumentException("К координатам #" + id + " привязано машин: " + linked.size()
-                        + ". Выберите, к каким координатам их перепривязать");
+                throw new InvalidRequestException("К координатам #" + id + " привязано машин: " + linked.size()
+                        + ". Укажите ID координат, к которым их перепривязать");
             if (reassignToId == id)
-                throw new IllegalArgumentException("Нельзя перепривязать машины к тем же координатам, которые удаляются");
+                throw new InvalidRequestException("Нельзя перепривязать машины к тем же координатам, которые удаляются");
             Coordinates target = find(reassignToId);
             for (Vehicle v : linked) v.setCoordinates(target);
         }

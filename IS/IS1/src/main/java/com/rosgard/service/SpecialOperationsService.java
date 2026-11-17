@@ -2,6 +2,7 @@ package com.rosgard.service;
 
 import com.rosgard.entity.FuelType;
 import com.rosgard.entity.Vehicle;
+import com.rosgard.exception.InvalidRequestException;
 import com.rosgard.repository.VehicleRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -16,8 +17,10 @@ import java.util.List;
 @Transactional
 public class SpecialOperationsService {
 
-    @Inject VehicleRepository vehicles;
-    @Inject Event<Vehicle> changed;
+    @Inject
+    VehicleRepository vehicles;
+    @Inject
+    Event<Vehicle> changed;
 
     public int deleteByFuelType(FuelType fuelType) {
         List<Vehicle> found = vehicles.findByFuelType(fuelType);
@@ -40,16 +43,16 @@ public class SpecialOperationsService {
     }
 
     public List<Vehicle> enginePowerBetween(int min, int max) {
-        if (min > max) throw new IllegalArgumentException("Минимум не может быть больше максимума");
+        if (min > max) throw new InvalidRequestException("Минимум не может быть больше максимума");
         return vehicles.findByEnginePowerBetween(min, max);
     }
 
     public Vehicle addWheels(long id, int count) {
-        if (count <= 0) throw new IllegalArgumentException("Число добавляемых колёс должно быть больше 0");
+        if (count <= 0) throw new InvalidRequestException("Число добавляемых колёс должно быть больше 0");
         Vehicle v = vehicles.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Vehicle с id " + id + " не найден"));
         if (count > Integer.MAX_VALUE - v.getNumberOfWheels())
-            throw new IllegalArgumentException("Слишком большое число колёс");
+            throw new InvalidRequestException("Слишком большое число колёс");
         v.setNumberOfWheels(v.getNumberOfWheels() + count);
         changed.fire(v);
         return v;
