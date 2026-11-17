@@ -30,13 +30,8 @@ public class VehicleService {
     @Inject
     Event<Vehicle> changed;
 
-    public List<Vehicle> getAll() {
-        return vehicles.findAll();
-    }
-
-    public Map<String, Object> getPage(String filterField, String filterValue, String sort, boolean asc, int page, int size) {
-        if (page < 0 || size < 1 || size > 100) throw new IllegalArgumentException("Неверные параметры страницы");
-        List<Vehicle> items = vehicles.findPage(filterField, filterValue, sort, asc, page, size);
+    public Map<String, Object> getPage(String filterField, String filterValue, String sort, boolean asc, int offset, int size) {
+        List<Vehicle> items = vehicles.findPage(filterField, filterValue, sort, asc, offset, size);
         long total = vehicles.count(filterField, filterValue);
         return Map.of("items", items, "total", total);
     }

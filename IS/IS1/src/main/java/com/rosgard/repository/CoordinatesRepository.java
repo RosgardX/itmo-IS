@@ -21,12 +21,22 @@ public class CoordinatesRepository {
         return Optional.ofNullable(em.find(Coordinates.class, id));
     }
 
-    public List<Coordinates> findAll() {
+    public List<Coordinates> findPage(int offset, int size) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Coordinates> q = cb.createQuery(Coordinates.class);
         Root<Coordinates> c = q.from(Coordinates.class);
         q.orderBy(cb.asc(c.get("id")));
-        return em.createQuery(q).getResultList();
+        return em.createQuery(q)
+                .setFirstResult(offset)
+                .setMaxResults(size)
+                .getResultList();
+    }
+
+    public long count() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> q = cb.createQuery(Long.class);
+        q.select(cb.count(q.from(Coordinates.class)));
+        return em.createQuery(q).getSingleResult();
     }
 
     public void delete(Coordinates c) {
