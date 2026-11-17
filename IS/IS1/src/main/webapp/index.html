@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>IS1 - Vehicles</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+    <h1>Транспортные средства</h1>
+
+    <div class="toolbar">
+        <button id="createBtn" class="primary">+ Создать</button>
+        <span class="spacer"></span>
+        <label>Фильтр по
+            <select id="filterField">
+                <option value="name">названию</option>
+                <option value="type">типу</option>
+                <option value="fuelType">типу топлива</option>
+            </select>
+        </label>
+        <input id="filterValue" placeholder="часть значения, например au">
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th></th>
+                <th data-sort="id">ID<br><small>(id)</small></th>
+                <th data-sort="name">Название<br><small>(name)</small></th>
+                <th data-sort="coordinates.x">X<br><small>(x)</small></th>
+                <th data-sort="coordinates.y">Y<br><small>(y)</small></th>
+                <th data-sort="creationDate">Дата создания<br><small>(creationDate)</small></th>
+                <th data-sort="type">Тип<br><small>(type)</small></th>
+                <th data-sort="enginePower">Мощность<br><small>(enginePower)</small></th>
+                <th data-sort="numberOfWheels">Колёса<br><small>(numberOfWheels)</small></th>
+                <th data-sort="capacity">Вместимость<br><small>(capacity)</small></th>
+                <th data-sort="distanceTravelled">Пробег<br><small>(distanceTravelled)</small></th>
+                <th data-sort="fuelConsumption">Расход<br><small>(fuelConsumption)</small></th>
+                <th data-sort="fuelType">Топливо<br><small>(fuelType)</small></th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+    </div>
+
+    <div class="pager">
+        <button id="prev">&larr;</button>
+        <span id="pageInfo"></span>
+        <button id="next">&rarr;</button>
+        <span class="muted" id="totalInfo"></span>
+    </div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>
