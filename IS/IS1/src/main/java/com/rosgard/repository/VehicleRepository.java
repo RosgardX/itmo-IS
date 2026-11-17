@@ -3,6 +3,7 @@ package com.rosgard.repository;
 import com.rosgard.entity.FuelType;
 import com.rosgard.entity.Vehicle;
 import com.rosgard.entity.VehicleType;
+import com.rosgard.exception.InvalidRequestException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -34,16 +35,8 @@ public class VehicleRepository {
         return Optional.ofNullable(em.find(Vehicle.class, id));
     }
 
-    public List<Vehicle> findAll() {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
-        Root<Vehicle> v = q.from(Vehicle.class);
-        q.orderBy(cb.asc(v.get("id")));
-        return em.createQuery(q).getResultList();
-    }
-
-    public List<Vehicle> findPage(String filterField, String filterValue, String sort, boolean asc, int page, int size) {
-        if (!SORT_FIELDS.contains(sort)) throw new IllegalArgumentException("Нельзя сортировать по полю " + sort);
+    public List<Vehicle> findPage(String filterField, String filterValue, String sort, boolean asc, int offset, int size) {
+        if (!SORT_FIELDS.contains(sort)) throw new InvalidRequestException("Нельзя сортировать по полю " + sort);
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Vehicle> q = cb.createQuery(Vehicle.class);
         Root<Vehicle> v = q.from(Vehicle.class);
@@ -51,7 +44,7 @@ public class VehicleRepository {
         Path<?> sortPath = path(v, sort);
         q.orderBy(asc ? cb.asc(sortPath) : cb.desc(sortPath), cb.asc(v.get("id")));
         return em.createQuery(q)
-                .setFirstResult(page * size)
+                .setFirstResult(offset)
                 .setMaxResults(size)
                 .getResultList();
     }
@@ -71,7 +64,7 @@ public class VehicleRepository {
             case "name" -> cb.like(cb.lower(v.get("name")), "%" + text + "%");
             case "type" -> in(cb, v.get("type"), matching(VehicleType.values(), text));
             case "fuelType" -> in(cb, v.get("fuelType"), matching(FuelType.values(), text));
-            default -> throw new IllegalArgumentException("Нельзя фильтровать по полю " + field);
+            default -> throw new InvalidRequestException("Нельзя фильтровать по полю " + field);
         };
     }
 
@@ -139,12 +132,13 @@ public class VehicleRepository {
         return em.createQuery(q).getResultList();
     }
 
-    public Map<Integer, Long> countByCoordinates() {
+    public Map<Integer, Long> countByCoordinates(List<Integer> coordinatesIds) {
+        if (coordinatesIds.isEmpty()) return Map.of();
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Tuple> q = cb.createTupleQuery();
         Root<Vehicle> v = q.from(Vehicle.class);
         Path<Integer> id = v.get("coordinates").get("id");
-        q.multiselect(id, cb.count(v)).groupBy(id);
+        q.multiselect(id, cb.count(v)).where(id.in(coordinatesIds)).groupBy(id);
         return em.createQuery(q).getResultList().stream()
                 .collect(Collectors.toMap(t -> t.get(0, Integer.class), t -> t.get(1, Long.class)));
     }
