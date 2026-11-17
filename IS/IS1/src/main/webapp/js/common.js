@@ -11,7 +11,13 @@ function formatDate(s) {
 }
 
 function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[c]));
 }
 
 async function readErrors(res) {
@@ -77,8 +83,8 @@ document.body.insertAdjacentHTML('beforeend', `
         <fieldset>
             <legend>Координаты</legend>
             <div class="form-grid">
-                <label for="coordinatesSelect">Существующие</label>
-                <select id="coordinatesSelect" name="coordinatesId"></select>
+                <label for="f-coordinatesId">ID существующих <small>(пусто — новые)</small></label>
+                <input id="f-coordinatesId" name="coordinatesId" type="number" min="1" step="1">
 
                 <label for="f-x">X <small>(больше -415)</small></label>
                 <input id="f-x" name="x" type="number" step="any">
@@ -115,11 +121,6 @@ async function openDialog(id, onSaved) {
     document.getElementById('formErrors').innerHTML = '';
     document.getElementById('dialogTitle').textContent = id ? `Редактирование #${id}` : 'Новый объект';
 
-    const coords = await (await fetch(`${API}/coordinates`)).json();
-    document.getElementById('coordinatesSelect').innerHTML =
-        '<option value="">— новые (ввести X и Y) —</option>' +
-        coords.map(c => `<option value="${c.id}">#${c.id} (${c.x}; ${c.y})</option>`).join('');
-
     if (id) {
         const v = await (await fetch(`${API}/vehicles/${id}`)).json();
         for (const name of ['name', 'type', 'enginePower', 'numberOfWheels', 'capacity',
@@ -144,19 +145,19 @@ function formToVehicle(form) {
         distanceTravelled: num('distanceTravelled'),
         fuelConsumption: num('fuelConsumption'),
         fuelType: f.get('fuelType'),
-        coordinates: f.get('coordinatesId') ? { id: Number(f.get('coordinatesId')) } : { x: num('x'), y: num('y') }
+        coordinates: f.get('coordinatesId') ? {id: Number(f.get('coordinatesId'))} : {x: num('x'), y: num('y')}
     };
 }
 
-document.getElementById('coordinatesSelect').onchange = toggleXY;
+document.getElementById('f-coordinatesId').oninput = toggleXY;
 
 document.getElementById('vehicleForm').onsubmit = async e => {
     e.preventDefault();
     const body = JSON.stringify(formToVehicle(e.target));
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {'Content-Type': 'application/json'};
     const res = editingId
-        ? await fetch(`${API}/vehicles/${editingId}`, { method: 'PUT', headers, body })
-        : await fetch(`${API}/vehicles`, { method: 'POST', headers, body });
+        ? await fetch(`${API}/vehicles/${editingId}`, {method: 'PUT', headers, body})
+        : await fetch(`${API}/vehicles`, {method: 'POST', headers, body});
 
     if (res.ok) {
         document.getElementById('vehicleDialog').close();

@@ -14,7 +14,8 @@ import java.util.Map;
 @Produces(MediaType.APPLICATION_JSON)
 public class SpecialOperationsHandler {
 
-    @Inject SpecialOperationsService service;
+    @Inject
+    SpecialOperationsService service;
 
     @DELETE
     @Path("/fuel-type/{fuelType}")
@@ -24,7 +25,9 @@ public class SpecialOperationsHandler {
 
     @GET
     @Path("/oldest")
-    public Vehicle oldest() { return service.oldest(); }
+    public Vehicle oldest() {
+        return service.oldest();
+    }
 
     @GET
     @Path("/fuel-type-greater/{fuelType}")
